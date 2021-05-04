@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const { User } = require('../../models');
 
+// post route to sign up/create new user
 router.post('/', async (req, res) => {
   try {
     const userData = await User.create(req.body);
@@ -16,9 +17,10 @@ router.post('/', async (req, res) => {
   }
 });
 
+// post route to log in 
 router.post('/login', async (req, res) => {
   try {
-    const userData = await User.findOne({ where: { username: req.body.username } });
+    const userData = await User.findOne({ where: { email: req.body.email } });
 
     if (!userData) {
       res
@@ -30,9 +32,7 @@ router.post('/login', async (req, res) => {
     const validPassword = await userData.checkPassword(req.body.password);
 
     if (!validPassword) {
-      res
-        .status(400)
-        .json({ message: 'Incorrect username or password, please try again' });
+      res.status(400).json({ message: 'Incorrect username or password, please try again' });
       return;
     }
 
@@ -48,6 +48,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// post route to log out
 router.post('/logout', (req, res) => {
   if (req.session.logged_in) {
     req.session.destroy(() => {

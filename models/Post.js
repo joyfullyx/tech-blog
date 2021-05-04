@@ -33,7 +33,7 @@ Post.init(
         timestamps: false,
         freeTableName: true,
         underscored: true,
-        modelName: 'blog'
+        modelName: 'post'
     }
 );
 
