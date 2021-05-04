@@ -1,88 +1,120 @@
+const sequelize = require('../config/connection');
 const router = require('express').Router();
 const { Post, User, Comment } = require('../models');
-// const withAuth = require('../utils/auth');
 
-router.get('/', async (req, res) => {
-  try {
-    // Get all posts and JOIN with data
-    const postData = await Post.findAll({
-      include: [
-        {
+router.get('/', (req, res) => {
+  Post.findAll({
+    attributes: ['id', 'title', 'content', 'created_at'],
+    include: [
+      {
+        model: Comment,
+        attributes: ['id', 'comment_content', 'post_id', 'user_id', 'created_at'],
+        include: {
           model: User,
-          attributes: ['name'],
+          attributes: ['username'],
         },
-        {
-          model: Comment,
-          attributes: ['id', 'content', 'user_id', 'post_id'],
-          include: {
-            model: User,
-            attributes: ['name']
-          }
-        }
-      ],
+      },
+      {
+        model: User,
+        attributes: ['username'],
+      },
+    ],
+  })
+    .then((postData) => {
+      //serialize posts array to readable format
+      const posts = postData.map((post) => post.get({ plain: true }));
+      res.render('homepage', { posts, loggedIn: req.session.loggedIn });
+    })
+    .catch((err) => {
+      res.status(500).json(err);
     });
-
-    // Serialize data so the template can read it
-    const post = postData.map((post) => post.get({ plain: true }));
-
-    // Pass serialized data and session flag into template
-    res.render('homepage', { 
-      ...post, 
-      logged_in: req.session.logged_in 
-    });
-  } catch (err) {
-    res.status(500).json(err);
-  }
-});
-
-router.get('/posts/:id', async (req, res) => {
-  try {
-    // Get all posts and JOIN with user data
-    const postData = await Post.findByPk(req.params.id, {
-      include: [
-        {
-          model: User,
-          attributes: ['name'],
-        },
-        {
-          model: Comment,
-          attributes: ['id', 'content', 'user_id', 'post_id'],
-          include: {
-            model: User,
-            attributes: ['name']
-          }
-        }
-      ],
-    });
-    // Serialize data so the template can read it
-    const post = postData.get({ plain: true });
-
-    // Pass serialized data and session flag into template
-    res.render('dashboard', {
-      ...post,
-      logged_in: req.session.logged_in
-    });
-  } catch (err) {
-    res.status(500).json(err);
-  }
 });
 
 router.get('/login', (req, res) => {
-  // If the user is already logged in, redirect the request to another route
-  if (req.session.logged_in) {
+  if (req.session.loggedIn) {
     res.redirect('/');
     return;
   }
-
   res.render('login');
 });
 
+// render signup page
 router.get('/signup', (req, res) => {
-    // If the user is already logged in, redirect the request to another route
-    if (req.session.logged_in) {
-        res.redirect('/');
+  res.render('signup');
+});
+
+//render single post
+router.get('/post/:id', (req, res) => {
+  Post.findOne({
+    where: {
+      id: req.params.id,
+    },
+    attributes: ['id', 'content', 'title', 'created_at'],
+    include: [
+      {
+        model: Comment,
+        attributes: ['id', 'comment_content', 'post_id', 'user_id', 'created_at'],
+        include: {
+          model: User,
+          attributes: ['username'],
+        },
+      },
+      {
+        model: User,
+        attributes: ['username'],
+      },
+    ],
+  })
+    .then((postData) => {
+      if (!postData) {
+        res.status(404).json({ message: 'No post with this id' });
         return;
-    }
+      }
+
+      // serialize data
+      const post = postData.get({ plain: true });
+      res.render('singlePost', { post, loggedIn: req.session.loggedIn });
+    })
+    .catch((err) => {
+      res.status(500).json(err);
+    });
+});
+
+
+router.get('/posts/comments', (req, res) => {
+  Post.findOne({
+    where: {
+      id: req.params.id,
+    },
+    attributes: ['id', 'content', 'title', 'created_at'],
+    include: [
+      {
+        model: Comment,
+        attributes: ['id', 'comment_content', 'post_id', 'user_id', 'created_at'],
+        include: {
+          model: User,
+          attributes: ['username'],
+        },
+      },
+      {
+        model: User,
+        attributes: ['username'],
+      },
+    ],
+  })
+    .then((postData) => {
+      if (!postData) {
+        res.status(404).json({ message: 'No post with this id' });
+        return;
+      }
+
+      // serialize data
+      const post = postData.get({ plain: true });
+      res.render('postcomments', { post, loggedIn: req.session.loggedIn });
+    })
+    .catch((err) => {
+      res.status(500).json(err);
+    });
 });
 
 module.exports = router;
